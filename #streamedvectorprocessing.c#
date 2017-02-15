@@ -1,0 +1,113 @@
+//Matt Noblett
+//Project 2 - Streamed Vector Processing 
+//Wolffe GVSU - Winter 2017
+
+
+#include <stdio.h>
+#include <stdlib.h>
+#include <sys/types.h>
+#include <sys/wait.h>
+#include <unistd.h>
+#include <string.h>
+
+#define read 0
+#define write 1
+
+void assignment(int num);
+
+void assignment(int num){
+    printf("\n%d is beinging assigned to a process.\n", getpid());
+}
+
+int main(){
+    int i;
+    //First pipe between process 0 and 1
+    int descriptor1[2];
+
+    //Second Pipe between process 1 and 2
+    int descriptor2[2];
+
+    //Create File
+    FILE *file, *file2;
+
+    //Creates an array of childpids that are all originally set to null.
+    pid_t childpid[3] = {NULL, NULL, NULL};
+
+
+    //This is used to check if either of the pipes are bad
+    if(pipe(descriptor1) < 0 || pipe(descriptor2) < 0){
+        printf("One of the pipes are bad!!!\n");
+        exit(0);
+    }
+
+    printf("Parent PID: %d\n", getpid());
+
+    //For loop to run through and create the required child processes. 
+    for(i = 0; i <= 2; i++){
+        if((childpid[i] = fork()) == 0){
+            printf("Pid spawned %d\n", getpid());
+
+            switch (i){
+
+                //Reads in each line from a file, and then performs the ones compliment on it
+                //After that, it will write it to the first pipe.
+                case 0:{       
+                    signal(SIGINT, assignment);
+                    pause();
+                    file = fopen("input vector A.txt", "r");
+                    char line[256];
+                    printf("Child 1 Running\n");
+                    while(fgets(line, sizeof(line), file)){
+                        printf("Line: %s", line);
+                        char onescomp[256];
+                        bzero(onescomp, sizeof(onescomp));
+                        int count = 0;
+                        for(count = 0; count < strlen(line)-1; count++){
+                            if(line[count] == '1'){
+                                onescomp[count] = '0';
+                            }else{
+                                onescomp[count] = '1';
+                            }
+                        }
+                            //Completes the One comp, and then prints it out, and puts it to the pipe.
+                            printf("Ones Comp: %s\n",onescomp);
+                            //write(descriptor1[1], onescomp, sizeof(onescomp));
+                            bzero(onescomp, sizeof(onescomp));
+                    }
+                    exit(0);
+                       }
+                case 1:{
+                    signal(SIGINT, assignment);
+                    pause();
+                    char line[256];
+                    //read(descriptor1[0],line , strlen(line));
+
+                    exit(0);
+                       }
+                case 2:{
+                    signal(SIGINT, assignment);
+                    pause();
+                    file2 = fopen("input vector B.txt","r");
+                    char line[256];
+                    while(fgets(line, sizeof(line), file2)){
+                        //Reads from pipe 2, adds the value found from file 2 to the value found in pipe 2.
+                        //Writes to a text file
+                        printf("CHILD 3 Running This Section:\n");
+                        printf("Line: %s\n", line); 
+                    }
+                    exit(0);
+                       }
+                default:{
+                    break;
+                        }
+            }
+
+        }
+    }
+
+    //Used to wait for all three children to return after finishing their process
+    for(i = 0; i < 3; i++){
+        wait(NULL);
+    }
+}
+
