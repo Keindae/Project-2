@@ -37,11 +37,12 @@ int main(int argc, char **argv){
 
     //Create a buffer, with the user inputting the size. Atoi converts it to an interger.
     int linebuffer = atoi(argv[3]);
-
+    
+    //Checks to make sure that the line buffer was created correctly. This allows for my project to be scalabe, sort of?
     fprintf(stderr, "Line Buffer Size: %d\n", linebuffer);
 
     //Creates an array of childpids that are all originally set to null.
-    pid_t childpid[3] = {NULL, NULL, NULL};
+    pid_t childpid[3];// = {NULL, NULL, NULL};
 
 
     //This is used to check if either of the pipes are bad
@@ -67,15 +68,23 @@ int main(int argc, char **argv){
                            close(pipe2[0]);
                            FILE *inputFileA;
                            inputFileA = fopen(file, "r");
-                           char line[linebuffer +1];
+                           char line[linebuffer + 1];
                            line[linebuffer] = '\0';
                            char onescomp[linebuffer +1];
                            onescomp[linebuffer] = '\0';
-                           while(fgets(line, linebuffer +1, inputFileA) != NULL){
-                               line[strcspn(line, "\n\0")] = 0;
+                           bzero(onescomp, strlen(onescomp));
+                           while(1){
+                               //linebuffer +3 because was out of ideas and was on verge of insanity.
+                               fgets(line, linebuffer + 3, inputFileA);
+                               if(feof(inputFileA)){
+                                   break;
+                               }
+                               //This strips the extra ending characters before doing any of the work
+                               //and writing it to the pipe. 
+                               line[strcspn(line, "\n\r")] = 0;
                                fprintf(stderr, "Comp Original Line Read: %s\n", line);
-                               int count = 0;
-                               for(count = 0; count < linebuffer; count++){
+                               int count;
+                               for(count = 0; count < linebuffer + 1; count++){
                                    if(line[count] == '1'){
                                        onescomp[count] = '0';
                                    }else if(line[count] == '0'){
@@ -146,7 +155,7 @@ int main(int argc, char **argv){
                            endingfile = fopen("Outputfile.txt", "w");
                            //Generic while loop to get us rolling. 
                            while(1){
-                               fgets(line, linebuffer +1, inputFileB);
+                               fgets(line, linebuffer + 3, inputFileB);
                                if(feof(inputFileB)){
                                        break;
                                }
@@ -196,6 +205,7 @@ int main(int argc, char **argv){
                                
                                fprintf(stderr, "Binary Adder Addednum Total: %s\n", pipeline);
                                fprintf(endingfile, "%s\n", pipeline);
+                               bzero(pipeline, sizeof(pipeline));
                            }
                            //end of the while, close out the file, and exit the process. 
                            fclose(endingfile);
@@ -211,8 +221,9 @@ int main(int argc, char **argv){
         }
     }
     //Used to wait for all three children to return after finishing their process
-    for(i = 0; i < 3; i++){
+    for(i = 0; i <= 2; i++){
         wait(NULL);
     }
+    return 0;
 }
 
